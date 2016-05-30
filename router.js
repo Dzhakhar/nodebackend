@@ -1,47 +1,39 @@
 var url = require("url");
+var pathModule = require("path");
 var Render = require("./render");
 var fs = require("fs");
 var listener = [];
+
+var mimeTypes = {
+	'.js': 'text/javascript',
+	'.html': 'text/html',
+	'.css': 'text/css',
+	'.jpg': 'image/jpeg',
+	'.gif': 'image/gif'
+}
 
 exports.get = function(req, res){
 	req.requrl = url.parse(req.url, true);
 	var path = req.requrl.pathname;
 
 	res.sendfile = function(pathToFile, data){
-
 		pathToFile = __dirname + pathToFile;
-
-		if (/.(html)$/.test(pathToFile)){
-
-			Render.renderfile(pathToFile, data, function(){
-				res.writeHead(200, {
-					'Content-Type': 'text/html'
-				});
-
-				fs.readFile(pathToFile, "utf8", function(err, data){
-					if(err) throw err;
-					res.write(data);
-					res.end();
-				})
+		Render.renderfile(pathToFile, data, function(){
+			res.writeHead(200, {
+				'Content-Type': mimeTypes[pathModule.extname(pathToFile)]
 			});
-		}
+
+			fs.readFile(pathToFile, "utf8", function(err, data){
+				if(err) throw err;
+				res.write(data);
+				res.end();
+			})
+		});
 	}
 
 
-	if(/.(css)$/.test(path)){
-		res.writeHead(200, {
-			'Content-Type': 'text/css'
-		});
-
-		fs.readFile(__dirname + "/static" + path, 'utf8', function(err, data){
-			if(err) throw err;
-			res.write(data, 'utf8');
-			res.end();
-		});
-	} else {
-		if(listener[path]){
-			listener[path](req.requrl, res);
-		}
+	if(listener[path]){
+		listener[path](req.requrl, res);
 	}
 }
 
